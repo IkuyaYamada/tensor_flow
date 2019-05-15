@@ -1,42 +1,59 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[8]:
+# In[90]:
 
 
+# いろいろインポート
+# kerasはTFのラッパー関数
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import matplotlib.pyplot as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
+import os
+os.environ['PYTHONHASHSEED'] = '0'
+np.random.seed(198)
+tf.set_random_seed(198)
 
 
-# In[9]:
+# In[91]:
 
 
-# データセットの準備
+# データセットの準備　minstの中のfassion_minstを利用。
 fashion_mnist = keras.datasets.fashion_mnist
 
 (train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
 
 
-# In[10]:
+# In[92]:
 
 
+# Labelが数字だとわかりにくいので決めておく
 class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 
                'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
 
 
-# In[15]:
+# In[29]:
 
 
+# 28*28ピクセルの写真が6万枚ある。
+train_images.shape
+
+
+# In[94]:
+
+
+# i番目の画像をチェックする。
+i = 20
+#print(train_images[i])
 plt.figure()
-plt.imshow(train_images[0])
+plt.imshow(train_images[i], cmap=plt.cm.binary) # 白黒にする
 plt.colorbar()
 plt.gca().grid(False)
 
 
-# In[16]:
+# In[95]:
 
 
 # データの前処理、ピクセル数を[0,1]にする
@@ -45,7 +62,7 @@ train_images = train_images / 255.0
 test_images = test_images / 255.0
 
 
-# In[20]:
+# In[96]:
 
 
 plt.figure(figsize=(10,10))
@@ -58,24 +75,28 @@ for i in range(25):
     plt.xlabel(class_names[train_labels[i]])
 
 
-# In[141]:
+# In[139]:
 
 
+# 深層モデルの構築
+# 入力はピクセル(28*28)を行ベクトル(1*784)にしたもの
+# 入力　→ 20 → 10 → ソフトマックス層(出力層)
 model = keras.Sequential([
     keras.layers.Flatten(input_shape=(28, 28)),
-    keras.layers.Dense(20, activation=tf.nn.relu),
+    keras.layers.Dense(32, activation=tf.nn.relu),
+    keras.layers.Dense(16, activation=tf.nn.relu),
     keras.layers.Dense(10, activation=tf.nn.softmax)
 ])
 
 
-# In[143]:
+# In[140]:
 
 
 # Early-stopping 
 early_stopping = keras.callbacks.EarlyStopping(patience=2, verbose= 1) 
 
 
-# In[132]:
+# In[141]:
 
 
 # 各バッチの損失リスト
@@ -89,21 +110,22 @@ class LossHistory(keras.callbacks.Callback):
 history = LossHistory()
 
 
-# In[145]:
+# In[142]:
 
 
-model.compile(optimizer=tf.keras.optimizers.Adam(), 
+# モデルをコンパイルする
+model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.01), 
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
 
-# In[146]:
+# In[156]:
 
 
-hist = model.fit(train_images, train_labels, batch_size=1024, epochs=100,                  validation_data=(test_images, test_labels), callbacks=[early_stopping, history])
+hist = model.fit(train_images, train_labels, batch_size=1024, epochs=10,                  validation_data=(test_images, test_labels),                  callbacks=None, verbose=1)
 
 
-# In[148]:
+# In[157]:
 
 
 # lossをプロット
@@ -113,7 +135,7 @@ plt.plot(x, history.losses)
 plt.show()
 
 
-# In[75]:
+# In[145]:
 
 
 test_loss, test_acc = model.evaluate(test_images, test_labels)
@@ -121,13 +143,13 @@ test_loss, test_acc = model.evaluate(test_images, test_labels)
 print('Test accuracy:', test_acc)
 
 
-# In[55]:
+# In[146]:
 
 
 predictions = model.predict(test_images)
 
 
-# In[56]:
+# In[147]:
 
 
 def plot_image(i, predictions_array, true_label, img):
@@ -162,11 +184,11 @@ def plot_value_array(i, predictions_array, true_label):
     thisplot[true_label].set_color('blue')
 
 
-# In[149]:
+# In[150]:
 
 
 # i番目のテストサンプルの評価
-i = 12
+i = 16
 plt.figure(figsize=(6,3))
 plt.subplot(1,2,1)
 plot_image(i, predictions, test_labels, test_images)
@@ -174,12 +196,12 @@ plt.subplot(1,2,2)
 plot_value_array(i, predictions,  test_labels)
 
 
-# In[150]:
+# In[153]:
 
 
 # X個のテスト画像、予測されたラベル、正解ラベルを表示します。
 # 正しい予測は青で、間違った予測は赤で表示しています。
-num_rows = 5
+num_rows = 10
 num_cols = 3
 num_images = num_rows*num_cols
 plt.figure(figsize=(2*2*num_cols, 2*num_rows))
